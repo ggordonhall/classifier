@@ -3,7 +3,6 @@ import logging
 import argparse
 import pandas as pd
 
-import torch
 from torch import nn, optim
 
 import run
@@ -94,4 +93,3 @@ if __name__ == "__main__":
     set_logger(os.path.join(temp_dir, "train.log"))
 
     main(args)
-

@@ -1,7 +1,6 @@
 import os
 import pickle
 import logging
-from typing import Dict
 
 import numpy as np
 import torch
@@ -31,7 +30,7 @@ class Glove:
 
     def _build_dict(self):
         """
-        Iterate through pretrained embedding and build word to 
+        Iterate through pretrained embedding and build word to
         vector dict.
         """
 
