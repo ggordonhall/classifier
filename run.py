@@ -74,6 +74,7 @@ def test(data, idx2label):
     acc = num_correct / len(data) * 100
     logging.info("Test accuracy: {:.6g}".format(acc))
     logging.info("Evaluation complete!")
+    return acc
 
 
 def top_pred(output: torch.LongTensor):

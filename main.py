@@ -23,10 +23,10 @@ def main(args):
     train_df = pd.read_csv(train_path, sep=sep)
     test_df = pd.read_csv(test_path, sep=sep)
 
-    train = (train_df["text"], train_df["gold_label_simple"])
-    test = (test_df["text"], test_df["gold_label_simple"])
+    train_txt = (train_df["text"], train_df["gold_label_simple"])
+    test_txt = (test_df["text"], test_df["gold_label_simple"])
 
-    data = Text(train, test)
+    data = Text(train_txt, test_txt)
     vocab = data.vocab
     idx2label = data.idx2label
 
@@ -41,7 +41,18 @@ def main(args):
         data.train, model, optimiser, loss_fn, embedding, idx2label, args.num_steps
     )
 
-    run.test(data.test, idx2label)
+    model_acc = run.test(data.test, idx2label)
+
+    if args.baseline:
+        logging.info("\n\nComparing with multinomial naive bayes baseline...\n\n")
+        from bayes import multi_nb
+
+        base_acc = multi_nb(train_txt, test_txt)
+        logging.info("Model accuracy: {:.6g}".format(model_acc))
+        logging.info("Baseline accuracy: {:.6g}".format(base_acc))
+        logging.info(
+            "{}".format("Model wins!" if model_acc > base_acc else "Baseline wins!")
+        )
 
 
 if __name__ == "__main__":
@@ -65,9 +76,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hidden_size", default=30, type=int, help="The size of the hidden layer"
     )
-    parser.add_argument("--lr", default=0.005, type=float, help="The learning rate")
+    parser.add_argument("--lr", default=0.0005, type=float, help="The learning rate")
     parser.add_argument(
         "--num_steps", default=1000, type=int, help="The number of training steps"
+    )
+    parser.add_argument(
+        "--baseline",
+        action="store_true",
+        help="Compare with multinomial naive bayes baseline",
     )
 
     args = parser.parse_args()
