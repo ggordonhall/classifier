@@ -64,7 +64,7 @@ def build_embedding(pretrained, emb_dim, vocab):
         vocab {List[str]} -- list of unique words
 
     Returns:
-        nn.Embedding -- a PyTorch embedding layer
+        {nn.Embedding} -- a PyTorch embedding layer
     """
 
     return embedding_layer(weights(pretrained, emb_dim, vocab))
@@ -80,7 +80,7 @@ def weights(pretrained, emb_dim, vocab):
         vocab {List[str]} -- list of unique words
 
     Returns:
-        np.array -- an embedding matrix
+        {np.array} -- an embedding matrix
     """
 
     matrix = np.zeros((len(vocab), emb_dim))
@@ -103,7 +103,7 @@ def embedding_layer(matrix, trainable=True):
         trainable {bool} -- trainable weights? (default: {True})
 
     Returns:
-        nn.Embedding -- a PyTorch embedding layer
+        {nn.Embedding} -- a PyTorch embedding layer
     """
 
     weights = torch.from_numpy(matrix)

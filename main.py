@@ -3,6 +3,7 @@ import logging
 import argparse
 import pandas as pd
 
+import torch
 from torch import nn, optim
 
 import run
@@ -22,8 +23,9 @@ def main(args):
     train_df = pd.read_csv(train_path, sep=sep)
     test_df = pd.read_csv(test_path, sep=sep)
 
-    train_txt = (train_df["text"], train_df["gold_label_simple"])
-    test_txt = (test_df["text"], test_df["gold_label_simple"])
+    target_col = "gold_label_{}".format(args.task_type)
+    train_txt = (train_df["text"], train_df[target_col])
+    test_txt = (test_df["text"], test_df[target_col])
 
     data = Text(train_txt, test_txt)
     vocab = data.vocab
@@ -32,7 +34,8 @@ def main(args):
     glove = Glove(emb_path).load()
     embedding = build_embedding(glove, args.emb_dim, vocab)
 
-    model = DAN(args.emb_dim, args.hidden_size, len(idx2label), embedding)
+    hidden_sizes = [int(x) for x in args.hidden_sizes]
+    model = DAN(args.emb_dim, hidden_sizes, len(idx2label), embedding)
     optimiser = optim.SGD(model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
 
@@ -66,6 +69,12 @@ if __name__ == "__main__":
         help="The format of the data file",
     )
     parser.add_argument(
+        "--task_type",
+        default="simple",
+        choices=["simple", "extended"],
+        help="The complexity of the task",
+    )
+    parser.add_argument(
         "--emb_dim",
         default=50,
         choices=[50, 300],
@@ -73,9 +82,12 @@ if __name__ == "__main__":
         help="The size of the embedding",
     )
     parser.add_argument(
-        "--hidden_size", default=30, type=int, help="The size of the hidden layer"
+        "--hidden_sizes",
+        nargs="+",
+        help="The sizes of the hidden layers (required)",
+        required=True,
     )
-    parser.add_argument("--lr", default=0.0005, type=float, help="The learning rate")
+    parser.add_argument("--lr", default=0.01, type=float, help="The learning rate")
     parser.add_argument(
         "--num_steps", default=1000, type=int, help="The number of training steps"
     )
@@ -91,5 +103,7 @@ if __name__ == "__main__":
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
     set_logger(os.path.join(temp_dir, "train.log"))
+
+    torch.manual_seed(230)
 
     main(args)

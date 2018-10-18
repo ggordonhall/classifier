@@ -1,6 +1,6 @@
 import logging
 from itertools import chain
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Any
 
 import spacy
 
@@ -25,7 +25,7 @@ class Text:
         self._train = self._pair(train_tokens, train_out)
         self._test = self._pair(test_tokens, test_out)
 
-    def _pair(self, inp: List[List[str]], out: List[str]) -> List[Tuple[str, int]]:
+    def _pair(self, inp, out):
         """Index and pair input and outputs.
 
         Arguments:
@@ -33,21 +33,21 @@ class Text:
             out {List[str]} -- List of labels
 
         Returns:
-            List[Tuple[List[int], int]] -- List of (List[int], int) pairs
+            {List[Tuple[List[int], int]]} -- List training pairs
         """
 
         inp_idx = [indexer(line, self._word2idx) for line in inp]
         out_idx = indexer(out, self._label2idx)
         return list(zip(inp_idx, out_idx))
 
-    def _label_dicts(self, labels: List[str]) -> Tuple[Dict[int, str], Dict[str, int]]:
+    def _label_dicts(self, labels):
         """Build index-to-label and label-to-index dicts.
 
         Arguments:
             col {List[str]} -- a list of labels
 
         Returns:
-            Tuple[Dict[int, str], Dict[str, int]] --
+            {Tuple[Dict[int, str], Dict[str, int]]} --
                 Index-to-label and label-to-index dicts
         """
         label2idx = build_dict(set(labels))

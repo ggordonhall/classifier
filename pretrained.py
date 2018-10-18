@@ -38,7 +38,7 @@ class Glove:
             for line in f:
                 word, *vect = line.split()
                 vect = list(map(float, vect))
-                word2tensor[word] = torch.FloatTensor(vect)
+                word2tensor[word] = torch.tensor(vect, dtype=torch.long)
         print("Finished building embedding...")
         self._save(word2tensor)
 

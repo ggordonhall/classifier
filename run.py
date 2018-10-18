@@ -17,8 +17,8 @@ def train(data, model, optim, loss_fn, emb, idx2label, num_steps):
 
     for step in trange(num_steps):
         inp, gold = choice(data)
-        x = torch.unsqueeze(torch.LongTensor(inp), 0)
-        y = torch.LongTensor([gold])
+        x = torch.unsqueeze(torch.tensor(inp, dtype=torch.long), 0)
+        y = torch.tensor([gold], dtype=torch.long)
 
         optim.zero_grad()
 
@@ -57,7 +57,7 @@ def test(data, idx2label):
         inp = [x for x in inp if x != -1]  #  remove unks
 
         if inp:
-            x = torch.unsqueeze(torch.LongTensor(inp), 0)
+            x = torch.unsqueeze(torch.tensor(inp, dtype=torch.long), 0)
             output = model(x)
             pred = top_pred(output)
 
@@ -77,7 +77,7 @@ def test(data, idx2label):
     return acc
 
 
-def top_pred(output: torch.LongTensor):
+def top_pred(output: torch.tensor):
     """Get top prediction"""
     _, top_i = output.data.topk(1)
     return top_i[0][0].item()
