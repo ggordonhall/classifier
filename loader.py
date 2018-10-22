@@ -39,19 +39,20 @@ class DataLoader:
         pretrained,
         pretrained_dir,
     ):
+        self._text_col = text_col
+        self._label_col = label_col
         # Build text and label `data.Field`
         self._text = data.Field(
-            sequential=True, tokenize=tokeniser, include_lengths=True, use_vocab=True
+            sequential=True, tokenize=tokeniser, use_vocab=True
         )
-        self._label = data.LabelField(use_vocab=True)
+        self._label = data.LabelField()
         # Match columns in the dataset with fields. If not used in the model
         #  column takes field value [col_name, None] and is ignored.
-        field_dict = {text_col: self._text, label_col: self._label}
+        field_dict = {self._text_col: self._text, self._label_col: self._label}
         fields = []
         for col in headings:
-            if col in field_dict.keys():
-                field = field_dict[col] if col in field_dict.keys() else None
-                fields.append([col, field])
+            field = field_dict[col] if col in field_dict.keys() else None
+            fields.append([col, field])
         # Load the dataset process according to fields
         train_splt, test_splt = data.TabularDataset.splits(
             path=dir,
@@ -70,9 +71,9 @@ class DataLoader:
         #  Split processed data into batches of dimensions `batch_sizes`
         train_it, test_it = data.BucketIterator.splits(
             datasets=(train_splt, test_splt),
-            batch_sizes=batch_sizes,
+            batch_sizes=batch_sizes,  #  (train, test) batch sizes
             sort_key=lambda x: len(getattr(x, text_col)),
-            sort_within_batch=True,
+            sort_within_batch=False,
             repeat=False,
         )
         self._iter_dict = {"train": train_it, "test": test_it}
@@ -88,9 +89,12 @@ class DataLoader:
 
         iterator = self._iter_dict[mode]
         for batch in iterator:
-            X = getattr(batch, self._text)
-            y = getattr(batch, self._label)
+            X = getattr(batch, self._text_col)
+            y = getattr(batch, self._label_col)
             yield (X, y)
+
+    def data_len(self, mode="train"):
+        return len(self._iter_dict[mode])
 
     @property
     def vocab(self):
@@ -112,4 +116,4 @@ def tokeniser(sentence):
         List[str] -- list of token strings
     """
 
-    return [word.text.lower() for word in nlp.pipe(sentence)]
+    return [word.lower_ for word in nlp(sentence)]

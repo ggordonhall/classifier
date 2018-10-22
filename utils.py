@@ -1,4 +1,13 @@
 import logging
+from typing import List
+
+
+def to_int(lst: List[str]) -> List[int]:
+    """Convert list of strings to ints"""
+    try:
+        return [int(s) for s in lst]
+    except ValueError:
+        raise ValueError("All dimensions must be integers!")
 
 
 def set_logger(log_path):
@@ -22,4 +31,3 @@ def set_logger(log_path):
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(stream_handler)
-

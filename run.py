@@ -2,8 +2,7 @@ import os
 import time
 import math
 import logging
-from tqdm import trange
-from random import choice
+from random import randint, choice
 
 import torch
 
@@ -16,9 +15,8 @@ def train(loader, model, optim, loss_fn, label_map, num_steps, temp_dir):
     logging.info("\n\nStarting training...")
     model.train()
 
-    for step in trange(num_steps):
-        X, y = next(loader.load())
-
+    for step in range(num_steps):
+        X, y = next(iter(loader.load()))
         optim.zero_grad()
 
         output = model(X)
@@ -30,12 +28,14 @@ def train(loader, model, optim, loss_fn, label_map, num_steps, temp_dir):
         current_loss += loss
 
         if step % 10 == 0:
-            pred = top_pred(output)
-            correct = "✓" if pred == y else "✗"
+            preds = top_preds(output)
+            r_idx = randint(0, preds.size(0) - 1)
+            correct = "✓" if preds[r_idx] == y[r_idx] else "✗"
 
             logging.info(
                 "Step: {}    Elapsed: {}    Loss: {:.6g}    Pred: {}    Correct: {}".format(
-                    step, time_since(start), loss, label_map[pred], correct
+                    step, time_since(
+                        start), loss, label_map[preds[r_idx]], correct
                 )
             )
 
@@ -52,17 +52,19 @@ def test(loader, label_map, temp_dir):
 
     num = 0
     num_correct = 0
-    for step, pair in enumerate(oader.load("test")):
+    for pair in loader.load("test"):
         X, y = pair
         output = model(X)
-        pred = top_pred(output)
+        preds = top_preds(output)
+        r_idx = randint(0, preds.size(0) - 1)
 
-        correct = "✓" if pred == y else "✗"
+        correct = "✓" if preds[r_idx] == y[r_idx] else "✗"
         if correct == "✓":
             num_correct += 1
 
         logging.info(
-            "Step: {}    Pred: {}    Correct: {}".format(step, label_map[pred], correct)
+            "Step: {}    Pred: {}    Correct: {}".format(
+                num + 1, label_map[preds[r_idx]], correct)
         )
         num += 1
 
@@ -72,10 +74,9 @@ def test(loader, label_map, temp_dir):
     return acc
 
 
-def top_pred(output: torch.tensor):
-    """Get top prediction"""
-    _, top_i = output.data.topk(1)
-    return top_i[0][0].item()
+def top_preds(output: torch.tensor):
+    """Get top predictions"""
+    return torch.max(output, 1)[1]
 
 
 def time_since(since: float) -> str:

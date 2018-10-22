@@ -18,7 +18,7 @@ class DAN(nn.Module):
             self.hidden.append(nn.Linear(hidden_sizes[k], hidden_sizes[k + 1]))
 
     def forward(self, x):
-        x = self.average(self.emb_layer(x))
+        x = self.average(self.emb_layer(x.transpose(0, 1)))
         x = self.inp_layer(x)
         for layer in self.hidden:
             x = F.relu(layer(x))

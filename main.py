@@ -9,7 +9,7 @@ from torch import nn, optim
 import run
 from models import DAN
 from loader import DataLoader
-from utils import set_logger
+from utils import set_logger, to_int
 
 
 def main(args):
@@ -29,14 +29,13 @@ def main(args):
         headings,
         text,
         label,
-        args.batch_dims,
+        to_int(args.batch_dims),
         pretrained,
         args.temp_dir,
     )
     # Build model
-    hidden_dims = [int(x) for x in args.hidden_dims]
     vocab, label_map = loader.vocab, loader.label_map
-    model = DAN(len(vocab), hidden_dims, len(
+    model = DAN(len(vocab), to_int(args.hidden_dims), len(
         label_map), args.emb_dim, vocab.vectors)
     #  Define training functions
     optimiser = optim.SGD(model.parameters(), lr=args.lr)
@@ -105,8 +104,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_dims",
         nargs="+",
-        default=(32, 32),
-        help="Dimensions of data batches (default = (32, 32))",
+        default=(16, 1),
+        help="Dimensions of (train, test) data batches (default = (16, 1))",
     )
     parser.add_argument("--lr", default=0.01, type=float,
                         help="The learning rate")
