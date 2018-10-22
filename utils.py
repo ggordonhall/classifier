@@ -1,6 +1,9 @@
 import logging
 from typing import List
 
+import pandas as pd
+import matplotlib.pyplot as plt
+
 
 def to_int(lst: List[str]) -> List[int]:
     """Convert list of strings to ints"""
@@ -8,6 +11,28 @@ def to_int(lst: List[str]) -> List[int]:
         return [int(s) for s in lst]
     except ValueError:
         raise ValueError("All dimensions must be integers!")
+
+
+def plot_loss(losses, report_every, dir):
+    """Plot the training loss.
+
+    Arguments:
+        losses {List[float]} -- list of losses
+        report_every {int} -- steps
+        dir {str} -- dir to save graph
+    """
+
+    series = pd.Series(losses)
+    rolling = series.rolling(window=(report_every // 5))
+    rolling_mean = rolling.mean()
+    series.plot()
+    rolling_mean.plot(color='red')
+
+    plt.ylabel("Loss")
+    plt.xlabel("Steps")
+    plt.grid(True)
+    plt.legend(("Training loss", "Running average"))
+    plt.savefig("{}/loss_plot.png".format(dir), dpi=300)
 
 
 def set_logger(log_path):

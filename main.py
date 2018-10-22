@@ -9,10 +9,11 @@ from torch import nn, optim
 import run
 from models import DAN
 from loader import DataLoader
-from utils import set_logger, to_int
+from utils import set_logger, plot_loss, to_int
 
 
 def main(args):
+    """Experiment logic"""
     # Get file separator and construct paths
     sep = "\t" if args.file_type == "tsv" else ","
     train_path = os.path.join(args.data_dir, "train.{}".format(args.file_type))
@@ -41,9 +42,14 @@ def main(args):
     optimiser = optim.SGD(model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
     # Train
-    run.train(
-        loader, model, optimiser, loss_fn, label_map, args.num_steps, args.temp_dir
+    losses = run.train(
+        loader, model, optimiser, loss_fn, label_map, args.num_steps, args.report_every, args.temp_dir
     )
+
+    if args.plot:
+        logging.info("\n\nPlotting training schedule...\n\n")
+        plot_loss(losses, args.report_every, args.temp_dir)
+
     # Test
     model_acc = run.test(loader, label_map, args.temp_dir)
 
@@ -112,11 +118,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_steps", default=1000, type=int, help="The number of training steps"
     )
+    parser.add_argument("--report_every", default=50, type=int,
+                        help="Print training information every this number of steps")
     parser.add_argument(
         "--baseline",
         action="store_true",
         help="Compare with multinomial naive bayes baseline",
     )
+    parser.add_argument("--plot", action="store_true",
+                        help="Plot the loss against time")
 
     args = parser.parse_args()
 
