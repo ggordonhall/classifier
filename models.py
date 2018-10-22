@@ -4,10 +4,13 @@ import torch.nn.functional as F
 
 
 class DAN(nn.Module):
-    def __init__(self, input_size, hidden_sizes, output_size, emb_layer):
+    def __init__(
+        self, vocab_size, hidden_sizes, output_size, embedding_size, pretrained_vecs
+    ):
         super(DAN, self).__init__()
-        self.emb_layer = emb_layer
-        self.inp_layer = nn.Linear(input_size, hidden_sizes[0])
+        self.emb_layer = nn.Embedding(vocab_size, embedding_size)
+        self.emb_layer.weight.data.copy_(pretrained_vecs)
+        self.inp_layer = nn.Linear(embedding_size, hidden_sizes[0])
         self.out_layer = nn.Linear(hidden_sizes[-1], output_size)
 
         self.hidden = nn.ModuleList()

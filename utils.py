@@ -3,14 +3,9 @@ import logging
 
 def set_logger(log_path):
     """Set the logger to log info in terminal and file `log_path`.
-    In general, it is useful to have a logger so that every output to the terminal is saved
-    in a permanent file. Here we save it to `temp/train.log`.
-    Example:
-    ```
-    logging.info("Starting training...")
-    ```
+
     Args:
-        log_path: (string) where to log
+        log_path {str} -- where to log
     """
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)

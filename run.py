@@ -1,3 +1,4 @@
+import os
 import time
 import math
 import logging
@@ -7,7 +8,7 @@ from random import choice
 import torch
 
 
-def train(data, model, optim, loss_fn, emb, idx2label, num_steps):
+def train(loader, model, optim, loss_fn, label_map, num_steps, temp_dir):
     """Training process"""
     start = time.time()
     current_loss = 0
@@ -16,13 +17,11 @@ def train(data, model, optim, loss_fn, emb, idx2label, num_steps):
     model.train()
 
     for step in trange(num_steps):
-        inp, gold = choice(data)
-        x = torch.unsqueeze(torch.tensor(inp, dtype=torch.long), 0)
-        y = torch.tensor([gold], dtype=torch.long)
+        X, y = next(loader.load())
 
         optim.zero_grad()
 
-        output = model(x)
+        output = model(X)
         loss = loss_fn(output, y)
 
         loss.backward()
@@ -32,46 +31,42 @@ def train(data, model, optim, loss_fn, emb, idx2label, num_steps):
 
         if step % 10 == 0:
             pred = top_pred(output)
-            correct = "✓" if pred == gold else "✗"
+            correct = "✓" if pred == y else "✗"
 
             logging.info(
                 "Step: {}    Elapsed: {}    Loss: {:.6g}    Pred: {}    Correct: {}".format(
-                    step, time_since(start), loss, idx2label[pred], correct
+                    step, time_since(start), loss, label_map[pred], correct
                 )
             )
 
     logging.info("Training complete!")
     logging.info("Now saving...\n\n")
-    torch.save(model, "temp/saved_model.pt")
+    torch.save(model, os.path.join(temp_dir, "saved_model.pt"))
 
 
-def test(data, idx2label):
+def test(loader, label_map, temp_dir):
     """Testing process"""
     logging.info("Evaluating...")
-    model = torch.load("temp/saved_model.pt")
+    model = torch.load(os.path.join(temp_dir, "saved_model.pt"))
     model.eval()
 
+    num = 0
     num_correct = 0
-    for step, pair in enumerate(data):
-        inp, gold = pair
-        inp = [x for x in inp if x != -1]  #  remove unks
+    for step, pair in enumerate(oader.load("test")):
+        X, y = pair
+        output = model(X)
+        pred = top_pred(output)
 
-        if inp:
-            x = torch.unsqueeze(torch.tensor(inp, dtype=torch.long), 0)
-            output = model(x)
-            pred = top_pred(output)
+        correct = "✓" if pred == y else "✗"
+        if correct == "✓":
+            num_correct += 1
 
-            correct = "✓" if pred == gold else "✗"
-            if correct == "✓":
-                num_correct += 1
+        logging.info(
+            "Step: {}    Pred: {}    Correct: {}".format(step, label_map[pred], correct)
+        )
+        num += 1
 
-            logging.info(
-                "Step: {}    Pred: {}    Correct: {}".format(
-                    step, idx2label[pred], correct
-                )
-            )
-
-    acc = num_correct / len(data) * 100
+    acc = num_correct / num * 100
     logging.info("Test accuracy: {:.6g}".format(acc))
     logging.info("Evaluation complete!")
     return acc
