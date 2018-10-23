@@ -38,7 +38,7 @@ def main(args):
     )
     # Build model
     vocab, label_map = loader.vocab, loader.label_map
-    model = DAN(len(vocab), to_int(args.hidden_dims), len(
+    model = DAN(len(vocab), to_int(args.layers), len(
         label_map), args.emb_dim, vocab.vectors)
     #  Define training functions
     optimiser = optim.SGD(model.parameters(), lr=args.lr)
@@ -46,9 +46,6 @@ def main(args):
 
     # Train
     logging.info("\n\nStarting training...\n\n")
-    if not args.report_every:
-        args.report_every = int(args.num_steps * 0.01)
-
     if args.num_processes > 1:
         model.share_memory()
         processes = []
@@ -60,12 +57,12 @@ def main(args):
         for p in processes:
             p.join()
     else:
-        losses = run.train(
-            loader, model, optimiser, loss_fn, label_map, args.num_steps, args.report_every
-        )
+        report_every = int(args.num_steps * 0.01)
+        losses = run.train(loader, model, optimiser, loss_fn,
+                           label_map, args.num_steps, report_every)
         if args.plot:
             logging.info("\n\nPlotting training schedule...\n\n")
-            plot_loss(losses, args.report_every, args.temp_dir)
+            plot_loss(losses, report_every, args.temp_dir)
 
     # Save the trained model
     logging.info("\n\nNow saving...\n\n")
@@ -96,6 +93,12 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--layers",
+        nargs="+",
+        help="The sizes of the hidden layers (required)",
+        required=True,
+    )
+    parser.add_argument(
         "--data_dir", default="data", help="The directory containing data files"
     )
     parser.add_argument(
@@ -123,12 +126,6 @@ if __name__ == "__main__":
         help="The size of the embedding",
     )
     parser.add_argument(
-        "--hidden_dims",
-        nargs="+",
-        help="The sizes of the hidden layers (required)",
-        required=True,
-    )
-    parser.add_argument(
         "--batch_dims",
         nargs="+",
         default=(16, 1),
@@ -139,8 +136,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_steps", default=1000, type=int, help="The number of training steps"
     )
-    parser.add_argument("--report_every", default=None, type=int,
-                        help="Print training information every this number of steps")
     parser.add_argument("--num_processes", default=1, type=int,
                         help="Number of parallel training processes (default = 1)")
     parser.add_argument(
