@@ -4,7 +4,9 @@ import argparse
 import pandas as pd
 
 import torch
-from torch import nn, optim
+from torch import nn
+from torch import optim
+import torch.multiprocessing as mp
 
 import run
 from models import DAN
@@ -41,14 +43,33 @@ def main(args):
     #  Define training functions
     optimiser = optim.SGD(model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
-    # Train
-    losses = run.train(
-        loader, model, optimiser, loss_fn, label_map, args.num_steps, args.report_every, args.temp_dir
-    )
 
-    if args.plot:
-        logging.info("\n\nPlotting training schedule...\n\n")
-        plot_loss(losses, args.report_every, args.temp_dir)
+    # Train
+    logging.info("\n\nStarting training...\n\n")
+    if not args.report_every:
+        args.report_every = int(args.num_steps * 0.01)
+
+    if args.num_processes > 1:
+        model.share_memory()
+        processes = []
+        for pid in range(args.num_processes):
+            p = mp.Process(target=run.training_process, args=(
+                pid, loader, model, optimiser, loss_fn, (args.num_steps // args.num_processes)))
+            p.start()
+            processes.append(p)
+        for p in processes:
+            p.join()
+    else:
+        losses = run.train(
+            loader, model, optimiser, loss_fn, label_map, args.num_steps, args.report_every
+        )
+        if args.plot:
+            logging.info("\n\nPlotting training schedule...\n\n")
+            plot_loss(losses, args.report_every, args.temp_dir)
+
+    # Save the trained model
+    logging.info("\n\nNow saving...\n\n")
+    torch.save(model, os.path.join(args.temp_dir, "saved_model.pt"))
 
     # Test
     model_acc = run.test(loader, label_map, args.temp_dir)
@@ -118,8 +139,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_steps", default=1000, type=int, help="The number of training steps"
     )
-    parser.add_argument("--report_every", default=50, type=int,
+    parser.add_argument("--report_every", default=None, type=int,
                         help="Print training information every this number of steps")
+    parser.add_argument("--num_processes", default=1, type=int,
+                        help="Number of parallel training processes (default = 1)")
     parser.add_argument(
         "--baseline",
         action="store_true",

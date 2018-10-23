@@ -9,7 +9,7 @@ from typing import Tuple
 import torch
 
 
-def train(loader, model, optim, loss_fn, label_map, num_steps, report_every, temp_dir):
+def train(loader, model, optim, loss_fn, label_map, num_steps, report_every):
     """Training routine.
 
     Arguments:
@@ -20,7 +20,6 @@ def train(loader, model, optim, loss_fn, label_map, num_steps, report_every, tem
         label_map {Dict[int, str]} -- map from index to string label
         num_steps {int} -- the number of training iterations
         report_every {int} -- report every x steps
-        temp_dir {str} -- directory to save the model
 
     Returns:
         {List[float]} -- list of losses
@@ -29,7 +28,6 @@ def train(loader, model, optim, loss_fn, label_map, num_steps, report_every, tem
     start = time.time()
     losses = []
 
-    logging.info("\n\nStarting training...")
     model.train()
 
     for step in range(num_steps):
@@ -54,9 +52,33 @@ def train(loader, model, optim, loss_fn, label_map, num_steps, report_every, tem
             )
 
     logging.info("Training complete!")
-    logging.info("Now saving...\n\n")
-    torch.save(model, os.path.join(temp_dir, "saved_model.pt"))
     return losses
+
+
+def training_process(pid, loader, model, optim, loss_fn, partition):
+    """Training process which operates for `partition` steps  of the
+    overall `num_steps`.
+
+    Arguments:
+        pid {int} -- the id of the process
+        loader {loader.DataLoader} -- class containing data generating logic
+        model {nn.Module} -- a PyTorch module containing model logic
+        optim {torch.optim} -- an optimiser
+        loss_fn -- a loss function
+        partition {int} -- a fraction of the overall `num_steps`
+    """
+
+    logging.info("Starting training process #{}".format(pid))
+    for _ in range(partition):
+        X, y = next(iter(loader.load()))
+        optim.zero_grad()
+
+        output = model(X)
+        loss = loss_fn(output, y)
+
+        loss.backward()
+        optim.step()
+    logging.info("Closing training process #{}".format(pid))
 
 
 def test(loader, label_map, temp_dir):
@@ -75,8 +97,7 @@ def test(loader, label_map, temp_dir):
     model = torch.load(os.path.join(temp_dir, "saved_model.pt"))
     model.eval()
 
-    num = 0
-    num_correct = 0
+    num, num_correct = 0, 0
     for pair in loader.load("test"):
         X, y = pair
         output = model(X)
