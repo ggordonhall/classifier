@@ -3,8 +3,6 @@ import logging
 import argparse
 import pandas as pd
 
-import sys
-
 import torch
 from torch import nn
 from torch import optim

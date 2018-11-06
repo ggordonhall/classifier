@@ -1,4 +1,3 @@
-from typing import Union, Iterable
 import pandas as pd
 
 from allennlp.data import Instance
@@ -9,11 +8,8 @@ from allennlp.data.token_indexers.elmo_indexer import ELMoTokenCharactersIndexer
 
 from allennlp.data.vocabulary import Vocabulary
 
-from allennlp.data.dataset import Batch
 from allennlp.data.iterators import BasicIterator
 from allennlp.data.dataset_readers import DatasetReader
-
-from allennlp.modules.token_embedders.elmo_token_embedder import ElmoTokenEmbedder
 
 
 class TabularReader(DatasetReader):
@@ -52,7 +48,9 @@ class TabularReader(DatasetReader):
         df = pd.read_csv(file_path, self.sep)
         text_col, label_col = df[self.text_name], df[self.label_name]
         for idx, sentence in enumerate(text_col):
-            yield self.text_to_instance(self.tokeniser.tokenize(sentence), label_col[idx])
+            yield self.text_to_instance(
+                self.tokeniser.tokenize(sentence), label_col[idx]
+            )
 
     def text_to_instance(self, tokens, label):
         """Build text and label field and convert tokens
@@ -76,7 +74,7 @@ class ElmoLoader:
     """Read data instances, construct a ``Vocabulary()`` object,
     batch and index the train and test sets. ``ElmoLoader.load()``
     returns an iterator which can be used to generate examples
-    ready to be fed to a model. 
+    ready to be fed to a model.
 
     Arguments:
         reader {DatasetReader} -- reader which yields data instances

@@ -6,15 +6,17 @@ nlp = spacy.load("en", disable=["parser", "tagger", "ner"])
 
 
 class DataLoader:
-    """Load, tokenise, vectorise and batch entries from a tabular dataset (csv, tsv).
-    The Spacy tokeniser is used to split text fields into tokens. Tokens are matched
-    with pretrained embeddings with the name `pretrained`, i.e. 'glove.6B.50d.txt',
-    which are downloaded to `dir` if they are not already there locally.
+    """Load, tokenise, vectorise and batch entries from a
+    tabular dataset (csv, tsv). The Spacy tokeniser is used
+    to split text fields into tokens. Tokens are matched with
+    pretrained embeddings with the name `pretrained`,
+    i.e. 'glove.6B.50d.txt', which are downloaded to `dir` if
+    they are not already there locally.
 
-    The `DataLoader.loader()` method returns a generator which yields (X, y) pairs
-    which are ready to feed to a model. By default the `loader()` generates pairs
-    from the training set, but if "test" is passed as an argument will generate from
-    the test set.
+    The `DataLoader.loader()` method returns a generator which
+    yields (X, y) pairs which are ready to feed to a model.
+    By default the `loader()` generates pairs from the training set,
+    but if "test" is passed as an argument will generate from the test set.
 
     Arguments:
         dir {str} -- path to the data directory
@@ -27,17 +29,8 @@ class DataLoader:
         pretrained_dir {str} -- path to embedding directory
     """
 
-    def __init__(
-        self,
-        dir,
-        format,
-        headings,
-        text_col,
-        label_col,
-        batch_sizes,
-        pretrained,
-        pretrained_dir
-    ):
+    def __init__(self, dir, format, headings, text_col, label_col,
+                 batch_sizes, pretrained, pretrained_dir):
         self._text_col = text_col
         self._label_col = label_col
         # Build text and label `data.Field`
