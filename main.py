@@ -3,6 +3,8 @@ import logging
 import argparse
 import pandas as pd
 
+import sys
+
 import torch
 from torch import nn
 from torch import optim
@@ -20,26 +22,42 @@ def main(args):
     sep = "\t" if args.file_type == "tsv" else ","
     train_path = os.path.join(args.data_dir, "train.{}".format(args.file_type))
     test_path = os.path.join(args.data_dir, "test.{}".format(args.file_type))
-    pretrained = "glove.6B.{}d.txt".format(args.emb_dim)
     #  Read column headings
     headings = pd.read_csv(train_path, sep=sep, nrows=1).columns
     text, label = "text", "gold_label_{}".format(args.task_type)
 
-    # Build data loader
-    loader = DataLoader(
-        args.data_dir,
-        args.file_type,
-        headings,
-        text,
-        label,
-        to_int(args.batch_dims),
-        pretrained,
-        args.temp_dir,
-    )
-    # Build model
-    vocab, label_map = loader.vocab, loader.label_map
-    model = DAN(len(vocab), to_int(args.layers), len(
-        label_map), args.emb_dim, vocab.vectors)
+    if args.elmo:
+        from elmo import TabularReader, ElmoLoader
+
+        # Pretrained urls
+        options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
+        weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
+        # Read dataset
+        reader = TabularReader(text, label, sep)
+        loader = ElmoLoader(reader, train_path, test_path, args.batch_dims)
+        # Build model
+        label_map = loader.label_map
+        embedding_size = 1024
+        model = DAN(to_int(args.layers), len(
+            label_map), embedding_size=embedding_size, elmo_config=(options_file, weight_file))
+
+    else:
+        # Build data loader
+        loader = DataLoader(
+            args.data_dir,
+            args.file_type,
+            headings,
+            text,
+            label,
+            to_int(args.batch_dims),
+            (args.glove_type, args.glove_dim),
+            args.temp_dir,
+        )
+        # Build model
+        vocab, label_map = loader.vocab, loader.label_map
+        model = DAN(to_int(args.layers), len(label_map), vocab_size=len(
+            vocab), embedding_size=args.glove_dim, pretrained_vecs=vocab.vectors)
+
     #  Define training functions
     optimiser = optim.SGD(model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
@@ -119,11 +137,22 @@ if __name__ == "__main__":
         help="The complexity of the task",
     )
     parser.add_argument(
-        "--emb_dim",
+        "--elmo",
+        action="store_true",
+        help="Use pre-trained ELMo embeddings (--glove_type and --glove_dim are void)"
+    )
+    parser.add_argument(
+        "--glove_type",
+        default="6B",
+        choices=["42B", "840B", "twitter.27B", "6B"],
+        help="The type of GloVe embedding (default = 6B)"
+    )
+    parser.add_argument(
+        "--glove_dim",
         default=50,
         choices=[50, 300],
         type=int,
-        help="The size of the embedding",
+        help="The size of the GloVe embedding",
     )
     parser.add_argument(
         "--batch_dims",
@@ -138,13 +167,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num_processes", default=1, type=int,
                         help="Number of parallel training processes (default = 1)")
+    parser.add_argument("--plot", action="store_true",
+                        help="Plot the loss against time")
     parser.add_argument(
         "--baseline",
         action="store_true",
         help="Compare with multinomial naive bayes baseline",
     )
-    parser.add_argument("--plot", action="store_true",
-                        help="Plot the loss against time")
 
     args = parser.parse_args()
 

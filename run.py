@@ -128,7 +128,7 @@ def top_preds(output: torch.tensor) -> torch.tensor:
 def random_result(preds: torch.tensor) -> Tuple[float, int]:
     """Return random prediction and its index"""
     idx = randint(0, preds.size(0) - 1)
-    return preds[idx], idx
+    return preds[idx].item(), idx
 
 
 def time_since(since: float) -> str:
